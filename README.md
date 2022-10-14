@@ -67,4 +67,17 @@ This project includes the following.
 + **Inverse ShiftRows & Inverse SubBytes**
   + **Inverse ShiftRows**
     + 아래와 같이 2행은 오른쪽으로 1번, 3행은 2번, 4행은 3번 쉬프트하면 된다.
+    ![제목 없음](https://user-images.githubusercontent.com/84726924/195863709-f11763ec-5628-4148-a838-c54bf4ea407e.png)
+    ```
+    void InvShiftRows(u8 S[16]) {
+	u8 temp;
+	temp = S[1];
+	S[1] = S[13]; S[13] = S[9]; S[9] = S[5]; S[5] = temp; //2행을 오른쪽으로 1바이트 쉬프트
+	temp = S[2];
+	S[2] = S[10]; S[10] = temp; temp = S[6]; S[6] = S[14]; S[14] = temp; //3행을 오른쪽으로 2바이트 쉬프트
+	temp = S[15];
+	S[15] = S[3]; S[3] = S[7]; S[7] = S[11]; S[11] = temp; //4행을 오른쪽으로 3바이트 쉬프트
+    ```
+  + **Inverse SubBytes**
+    + 먼저 Inverse Sbox는 GF(2⁸),(기약다항식:x⁸+x⁴+x³+x+1)에서 역 아핀연산과 inversion연산으로 설계된다. Inverse Sbox를 생성하기 위해선 역 아핀연산과 곱셈의 역원연산이 필요하다. 역 아핀 연산은 아핀연산에 사용되는 행렬의 역행렬을 구하면 된다.
     
