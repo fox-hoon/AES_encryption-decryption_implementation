@@ -1,13 +1,13 @@
 # AES_encryption-decryption_implementation
-AES_encryption-decryption(basic, optimization, file)
++ AES_encryption-decryption(basic, optimization, file)
 
-This project includes the following.
++ This project includes the following.
 
-1.Basic AES encryption/decryption
+	+ 1.Basic AES encryption/decryption
 
-2.AES-optimized encryption/decryption
+	+ 2.AES-optimized encryption/decryption
 
-3.File AES encryption/decryption (CBC operation mode, ECB operation mode, PKCS#7 padding)
+	+ 3.File AES encryption/decryption (CBC operation mode, ECB operation mode, PKCS#7 padding)
 ***
 # AES 복호화 구현
 + **AES 복호화 과정**
