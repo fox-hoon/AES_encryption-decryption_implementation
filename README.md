@@ -328,3 +328,83 @@
 		```
 		+ AES 최적화 복호화로 구현했을 때 연산속도가 AES 복호화보다 월등히 빠른 것을 확인할 수 있다.
 		![화면 캡처 2022-10-15 134856](https://user-images.githubusercontent.com/84726924/195969717-64d338ca-5a39-4245-90a9-83564868d671.png)
+***
+#AES 파일 복호화
++ **AES 파일 복호화 과정**
+	+ **블록암호 운용방식**
+		+ 블록암호 운용 방식은 하나의 키에서 블록 암호를 반복적으로 동작한다. 블록암호는 특정한 길이의 블록 단위로 동작하기 때문에, 가변 길이 데이터를 암호화하기 위해서는 먼저 단위 블록들로 나누어야 하며, 그 블록들을 어떻게 암호화할지 정해야 하는데, 이 때 블록들의 암호화 방식을 운용 방식이라 한다.
+	+ **CBC 운용모드**
+		+ 각 블록은 암호화되기 전에 이전 블록의 암호화 결과와 XOR되며, 첫 블록의 경우 초기화 벡터(IV)가 사용된다. 초기화 벡터가 같은 경우 출력 결과가 항상 같기 때문에, 매 암호화마다 다른 초기화 벡터를 사용해야 한다.
+		![화면 캡처 2022-10-15 134856](https://user-images.githubusercontent.com/84726924/195969931-6cfd39b8-9e6d-4246-b836-124619c06c76.png)
+		+ CBC 모드로 복호화 할 때는 암호문 블록을 복호화 한 다음 초기화 벡터(IV)와 XOR연산을 한다. 2번 째 블록부터는 직전 블록의 암호문 블록과 XOR 연산을 하여 복호화를 한다. CBC는 암호화 입력 값이 이전 결과에 의존하기 때문에 병렬화가 불가능하다. 하지만 복호화의 경우 각 블록을 복호화 한 다음 이전 암호문 블록과 XOR하여 복구할 수 있기 때문에 병렬화가 가능하다.
+		![화면 캡처 2022-10-15 134856](https://user-images.githubusercontent.com/84726924/195969954-402a15fd-950e-485c-a4b9-638ffd596fa8.png)
+	+ **PKCS#7 패딩**
+		+ CBC모드로 암호화를 할 때 마지막 블록이 블록의 길이와 딱 맞아 떨어지지 않기 때문에, 부족한 길이만큼 임의의 비트들로 채워 넣어야 한다. 이러한 방식을 패딩이라고 한다.
+		+ 임의의 파일을 AES 128비트로 암호화 한다고 했을 때 그 파일은 16바이트의 배수가 되어야 한다. 만약 마지막 블록이 11바이트라고 하면 나머지 5바이트를 패딩으로 채운다. PKCS#7 패딩을 이용하면 마지막 블록의 맨 뒤에 “05 05 05 05 05”라는 값이 들어간다. 즉 패딩 된 바이트의 수만큼 값이 들어간다. 파일의 길이가 16바이트의 배수일 경우엔 “10 10 10...” 10이 16개가 들어간다.
++ **AES 파일 복호화 구현**
+	+ **AES 파일 입출력**
+		+ 먼저 파일 입출력은 코드 안에서 파일을 불러와서 처리하는 방법이 있고, cmd 커맨드 창에서 인자를 받아서 처리하는 방법이 있다. 후자로 구현을 하면 main() 함수에 인자를 받을 수 있는 일종의 변수를 선언해 줘야 한다. 예를 들어서 커맨드 창에 “AES_ENC.exe cbc a.txt a.txt.enc”라고 입력할 경우 각 자리의 입력 값이 argv[0], argv[1], argv[2], argv[3]에 들어가게 된다. 해석을 하면 AES_ENC.exe를 실행하고 cbc모드로 a.txt파일을 a.txt.enc파일로 암호화 한다는 뜻이다.
+		```
+		//int argc : 인자의 개수, char* argv[v] : argv[0] argv[1] argv[2] argv[3] 인자를 받아서 처리하는 변수
+		int main(int argc, char* argv[]) {
+		```
+		+ 파일 입력은 “FILE \*변수명”라는 파일 포인터를 선언한다. fopen_s()함수로 인자 값으로 받은 파일을 바이너리 형식의 읽기 모드로 연다. 그런데 파일이 NULL이라면 오류 메시지를 띄워주는 예외처리를 둔다. fseek() 함수로 파일 포인터를 끝으로 이동시킨 다음 파일의 크기를 DataLen에 저장한다. 그리고 다시 fseek() 함수로 파일 포인터를 맨 앞으로 이동시킨다. 이러한 작업을 해주는 이유는 파일 복호화에서 패딩을 제거해주기 위해서이다. 그런 다음 inputbuf에 파일의 길이만큼 데이터를 담아준다. 파일 출력도 입력과 거의 유사하다.
+		```
+		FILE* rfp, * wfp; //inputfile=rfp, outputfile=wfp
+		u8* inputbuf, * outputbuf, r;
+		u8 IV[16] = { 0x00, }; //초기화 벡터
+		u32 DataLen, i;
+
+		fopen_s(&rfp, inputfile, "rb");
+
+		if (rfp == NULL) { //예외처리
+			perror("fopen_s 실패!!\n");
+		}
+		fseek(rfp, 0, SEEK_END); //file point를 끝으로 이동
+		DataLen = ftell(rfp); //inputfile의 크기(바이트 수)
+		fseek(rfp, 0, SEEK_SET); //file point를 처음으로 이동
+
+		inputbuf = calloc(DataLen, sizeof(u8)); //calloc:동적메모리 할당 후 0으로 초기화
+		outputbuf = calloc(DataLen, sizeof(u8));
+		fread(inputbuf, 1, DataLen, rfp); //파일의 길이만큼 1바이트씩 inputbuf에 담음
+		fclose(rfp);
+		```
+	+ **AES 파일 복호화(CBC)**
+		+ CBC모드에서 복호화는 암호문블록이 복호화과정을 거치고 나서 초기화 벡터와 XOR 연산을 하게 되고, 2번 째 블록부터는 이전 블록의 암호문블록과 XOR연산을 하게 된다.
+		```
+		AES_DEC_Optimization(inputbuf, W, outputbuf,W_mix, 128); //처음 파일 16바이트 복호화
+		XOR16Bytes(outputbuf, IV); //복호화된 16바이트와 초기화벡터를 XOR 연산
+	
+		for (i = 1; i < (DataLen) / 16; i++) { //16바이트부터 끝까지 복호화
+			AES_DEC_Optimization(inputbuf + 16 * i, W, outputbuf + 16 * i, W_mix, 128);
+			XOR16Bytes(outputbuf + 16 * i, inputbuf + 16 * (i-1) );
+		}
+		```
+	+ **PKCS#7 패딩 제거**
+		+ PKCS#7 패딩은 파일 뒷부분 패딩된 데이터가 4바이트면 “04 04 04 04”로 들어가 있기 때문에 파일의 마지막 부분의 값만큼 빼주면 된다. 여기서 아래와 같이 ouputbuf에는 복호화된 파일의 전체 데이터가 들어가 있다. DataLen은 파일의 크기가 들어가 있고 outputbuf [DataLen-1]로 패딩 값을 가져올 수 있다. DataLen에 –1을 해주는 이유는 파일의 맨 마지막엔 null값이 들어가기 때문이다. 그런 다음 ouputbuf에 있는 데이터를 패딩을 제거한(DataLen-r)만큼 wfp에 쓰면 된다.
+		```
+		fopen_s(&wfp, outputfile, "wb");
+		r = outputbuf[DataLen - 1]; //복호화된 파일의 패딩 값을 r에 저장
+		if (wfp == NULL) { //예외처리
+			perror("fopen_s 실패!!\n");
+		}
+		fwrite(outputbuf, 1, DataLen - r, wfp); //outputbuf에 있는 데이터를 DataLen-r만큼 wfp에 씀
+		fclose(wfp);
+		```
+	+ **AES 파일 복호화 결과**
+		+ main()함수에서 키 스케줄링을 먼저 해주고 파일 복호화 함수를 실행시켜주면 된다. 여기서는 속도 체크를 하기 위해 clock()함수를 사용하고, for문으로 10,000번을 복호화 했다.
+		```
+		else if (strcmp(argv[1], "cbc_D") == 0) {
+			AES_KeySchedule_Optimization(MK, W, keysize);
+			start = clock();
+			for (i = 0; i < 10000; i++) CBC_Decryption(argv[2], argv[3], W, W_mix);
+			finish = clock();
+			printf("=========================================\n");
+			printf("Computation time : %f seconds\n", (double)(finish - start) / CLOCKS_PER_SEC);
+			printf("=========================================\n");
+		}
+		```
+		+ 솔루션 빌드를 하고 나서 커맨드 창에서 AES_ENC.exe 실행파일이 있는 위치로 이동한 다음 “AES_ENC.exe cbc_D 4.jpeg.encrypted 4.jpeg”를 입력했다. 해석을 하자면 cbc모드로 4.jpeg.encrypted파일을 4.jpeg로 복호화 한 것이다. 그리고 cbc모드 복호화를 10,000번 수행했을 때 7.623초가 나온 것을 확인할 수 있다.
+		![화면 캡처 2022-10-15 134856](https://user-images.githubusercontent.com/84726924/195970239-55efe5a7-f732-4978-a1fa-9b228afa0003.png)
+		+ 암호화 된 파일을 복호화 한 결과는 아래와 같다.
+		![화면 캡처 2022-10-15 134856](https://user-images.githubusercontent.com/84726924/195970297-1c8082fa-05ab-44ba-97fc-91db0f804652.png)
