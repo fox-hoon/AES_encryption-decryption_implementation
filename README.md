@@ -232,7 +232,7 @@
 + **AES 최적화 테이블**
 	+ **AES 최적화 테이블 생성 방법**
 		+ AES에서 SubBytes와 ShiftRows 순서를 바꾸는 게 가능하므로 암호화 한 라운드를 ShiftRows -> SubBytes&MixColumns -> AddRoundKey 순서로 변경한다.
-		+ SubBytes&MixColumns를 8*32 table 4개로 구현한다. 복호화는 Inverse SubBytes &Inverse MixColumns를 8*32 table 4개로 구현하면 된다.
+		+ SubBytes&MixColumns를 8\*32 table 4개로 구현한다. 복호화는 Inverse SubBytes &Inverse MixColumns를 8\*32 table 4개로 구현하면 된다.
 		+ 아래와 그림에서 Y0,Y1,Y2,Y3을 구한다고 했을 때 Y0||Y1||Y2||Y3 = ES(X0)+ BS(X13)+ DS(X10)+ 9S(X7) || 9S(X0)+ ES(X13)+ BS(10)+ DS(X7) || DS(X0)+ 9S(X13)+ ES(X10)+ BS(X7) || BS(X0)+ DS(X13)+ 9S(X10)+ ES(X7) =[ES(X0) || 9S(X0) || DS(X0) || BS(X0)] + [BS(X13) || ES(X13) || 9S(X13) || DS(X13)] +[DS(X10) || BS(X10) || ES(X10) || 9S(X10)] + [9S(X7) || DS(X7) || BS(X7) || ES(X7)]가 되고 Td0[X0] + Td1[X13] + Td2[X10] + Td3[X7]로 나타낼 수 있다.
 		![화면 캡처 2022-10-15 134856](https://user-images.githubusercontent.com/84726924/195969486-d4ef8745-6149-4c6f-98f5-eeb0431c92ff.png)
 		+ Td0을 생성한다고 했을 때 먼저 입력받은 x에 InvSubBytes연산을 수행하면 InvSbox[x]가 된다. 그리고 ((E*InvSbox[x])<<24)+((9*InvSbox[x])<<16)+((D*InvSbox[x])<<8)+B*InvSbox[x]연산을 하여 출력한다.
