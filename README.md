@@ -1,3 +1,12 @@
+# 기술 스택
+### ✔Programming Language
+<img src="https://img.shields.io/badge/C-00599C?style=for-the-badge&logo=C&logoColor=white">
+
+### ✔Tool
+<img src="https://img.shields.io/badge/Visual Studio-5C2D91?style=for-the-badge&logo=Visual Studio&logoColor=white">
+
+
+***
 # AES_encryption-decryption_implementation
 + AES_encryption-decryption(basic, optimization, file)
 
